@@ -74,7 +74,7 @@ def get_variants(node, toks, brace_level, indent_level):
     first = toks[node[1]]
     second = toks[node[1] + 1]
     line_length = calc_line_length(node, toks, indent_level)
-    base_penalty = newline_penalty(first, second) + (len(toks) - node[1]) / 100
+    base_penalty = newline_penalty(first, second) + (len(toks) - node[1]) / len(toks)
     needs_space = needs_space_between(first, second)
 
     if second[0] == tokens.COLON and second == toks[-1]:
@@ -94,7 +94,16 @@ def get_variants(node, toks, brace_level, indent_level):
     if base_penalty == float('inf'):
         return variants
 
-    variants.append((base_penalty + brace_level * BRACE_PENALTY, '\n' + '    ' * (indent_level + 1)))
+    spacer = ''
+
+    if brace_level == 0:
+        spacer += ' \\\n'
+    else:
+        spacer += '\n'
+
+    spacer += '    ' * (indent_level + 1)
+
+    variants.append((base_penalty + brace_level * BRACE_PENALTY, spacer))
     return variants
 
 def calc_line_length(node, tokens, indent_level):
