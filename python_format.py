@@ -30,8 +30,10 @@ OPERATORS = [tokens.PLUS, tokens.MINUS, tokens.STAR, tokens.SLASH, tokens.VBAR,
              tokens.RIGHTSHIFTEQUAL, tokens.DOUBLESTAREQUAL,
              tokens.DOUBLESLASH, tokens.DOUBLESLASHEQUAL]
 
+KEYWORDS = ['class', 'if', 'def', 'return', 'for', 'while', 'elif', 'else', 'yield', 'in', 'pass', 'del']
+
 COLUMN_WIDTH = 80
-BRACE_PENALTY = 1
+BRACE_PENALTY = 50
 EXTRA_CHAR_PENALTY = 100
 
 def newline_penalty(first, second):
@@ -41,8 +43,8 @@ def newline_penalty(first, second):
     if second[0] in OPERATORS:
         return 100
 
-    if first[0] == tokens.NAME and first[1] in ('class', 'if', 'def', 'return', 'for', 'while', 'elif'):
-        return 100
+    if first[0] == tokens.NAME and first[1] in KEYWORDS:
+        return 20
 
     if first[0] == tokens.COMMA:
         return 1
@@ -56,6 +58,12 @@ def newline_penalty(first, second):
     return float('inf')
 
 def needs_space_between(first, second):
+    if first[0] == tokens.NAME and first[1] in KEYWORDS:
+        return True
+
+    if second[0] == tokens.NAME and second[0] in KEYWORDS:
+        return True
+
     if first[0] == tokens.COLON or second[0] == tokens.COLON:
         return True
 
@@ -63,7 +71,10 @@ def needs_space_between(first, second):
         return True
 
     if first[0] == tokens.NAME:
-        return not second[0] in (tokens.LPAR, tokens.RPAR, tokens.LSQB, tokens.RSQB, tokens.DOT)
+        return not second[0] in (tokens.LPAR, tokens.RPAR, tokens.LSQB, tokens.RSQB, tokens.DOT, tokens.COMMA)
+
+    if second[0] == tokens.NAME:
+        return not first[0] in (tokens.DOT, tokens.LPAR, tokens.LSQB)
 
     if first[0] == tokens.COMMA:
         return True
