@@ -8,7 +8,7 @@ import sys
 sys.path.append('pypy')
 
 from pypy.interpreter.pyparser.pytokenizer import generate_tokens
-from pypy.interpreter.pyparser import pytoken
+from pypy.interpreter.pyparser import pytoken, error
 from pypy.interpreter.pyparser.pygram import tokens
 
 def pairwise(it):
@@ -187,7 +187,6 @@ def format_line(line):
         node = node[2]
 
     nodes.reverse()
-    #print([n[0] for n in nodes])
 
     strs = ['    ' * line.indent_level]
 
@@ -199,16 +198,13 @@ def format_line(line):
     return ''.join(strs)
 
 def main(argv):
-    toks = generate_tokens(sys.stdin.readlines(), 0)
+    lines = sys.stdin.readlines()
 
-    #for token in toks:
-        #for key, value in pytoken.python_tokens.items():
-            #if value == token[0]:
-                #sys.stdout.write('{} ({}) '.format(key, token[1]))
-                #if token[0] == tokens.NEWLINE:
-                    #sys.stdout.write('\n')
-
-    #sys.stdout.write('\n\n')
+    try:
+        toks = generate_tokens(lines, 0)
+    except error.TokenError as err:
+        sys.stdout.write(''.join(lines))
+        return 1
 
     indent_level = 0
     lines = []
@@ -216,7 +212,7 @@ def main(argv):
     
     for token in toks:
         if token[0] == tokens.INDENT:
-            indent_level += 1
+            indent_level += int(len(token[1]) / 4)
             continue
         elif token[0] == tokens.DEDENT:
             indent_level -= 1
@@ -232,7 +228,7 @@ def main(argv):
             current_line.tokens.append(token)
 
     for line in lines:
-        print(format_line(line))
+        sys.stdout.write(format_line(line))
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
