@@ -37,7 +37,7 @@ COLUMN_WIDTH = 80
 BRACE_PENALTY = 50
 EXTRA_CHAR_PENALTY = 100
 
-def newline_penalty(first, second):
+def newline_penalty(first, second, brace_level):
     if first[0] in OPERATORS:
         return 10
     
@@ -50,23 +50,20 @@ def newline_penalty(first, second):
     if first[0] == tokens.COMMA:
         return 1
 
-    if first[0] == tokens.COLON:
+    if brace_level > 0 and first[0] == tokens.COLON:
         return 50
 
-    if second[0] == tokens.COLON:
+    if brace_level > 0 and second[0] == tokens.COLON:
         return 10
     
     return float('inf')
 
-def needs_space_between(first, second):
-    if first[0] == tokens.NAME and first[1] in KEYWORDS:
-        return True
-
+def needs_space_between(first, second, brace_level):
     if second[0] == tokens.NAME and second[0] in KEYWORDS:
         return True
 
     if first[0] == tokens.COLON or second[0] == tokens.COLON:
-        return True
+        return brace_level > 0
 
     if first[0] in OPERATORS or second[0] in OPERATORS:
         return True
@@ -79,6 +76,9 @@ def needs_space_between(first, second):
 
     if first[0] == tokens.COMMA:
         return True
+
+    if first[0] == tokens.NAME and first[1] in KEYWORDS:
+        return True
     
     return False
 
@@ -86,11 +86,8 @@ def get_variants(node, toks, brace_level, indent):
     first = toks[node[1]]
     second = toks[node[1] + 1]
     line_length = calc_line_length(node, toks, len(indent))
-    base_penalty = newline_penalty(first, second) + (len(toks) - node[1]) / len(toks)
-    needs_space = needs_space_between(first, second)
-
-    if second[0] == tokens.COLON and second == toks[-1]:
-        needs_space = False
+    base_penalty = newline_penalty(first, second, brace_level) + (len(toks) - node[1]) / len(toks)
+    needs_space = needs_space_between(first, second, brace_level)
 
     spacer = ' ' if needs_space else ''
 
