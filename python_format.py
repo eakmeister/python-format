@@ -10,13 +10,14 @@ sys.path.append('pypy')
 from pypy.interpreter.pyparser.pytokenizer import generate_tokens
 from pypy.interpreter.pyparser import pytoken, error
 from pypy.interpreter.pyparser.pygram import tokens
+from pypy.interpreter.astcompiler import consts
 
 def pairwise(it):
     a, b = tee(it)
     next(b, None)
     return izip(a, b)
 
-Line = namedtuple('Line', ['indent_level', 'tokens'])
+Line = namedtuple('Line', ['indent', 'tokens'])
 Spacer = namedtuple('Spacer', ['penalty', 'bracket_level'])
 
 OPERATORS = [tokens.PLUS, tokens.MINUS, tokens.STAR, tokens.SLASH, tokens.VBAR,
@@ -81,10 +82,10 @@ def needs_space_between(first, second):
     
     return False
 
-def get_variants(node, toks, brace_level, indent_level):
+def get_variants(node, toks, brace_level, indent):
     first = toks[node[1]]
     second = toks[node[1] + 1]
-    line_length = calc_line_length(node, toks, indent_level)
+    line_length = calc_line_length(node, toks, len(indent))
     base_penalty = newline_penalty(first, second) + (len(toks) - node[1]) / len(toks)
     needs_space = needs_space_between(first, second)
 
@@ -112,7 +113,7 @@ def get_variants(node, toks, brace_level, indent_level):
     else:
         spacer += '\n'
 
-    spacer += '    ' * (indent_level + 1)
+    spacer += indent + '    '
 
     variants.append((base_penalty + brace_level * BRACE_PENALTY, spacer))
     return variants
@@ -174,8 +175,7 @@ def format_line(line):
         token = tokens[token_idx]
         next_token = tokens[token_idx + 1]
         brace_level = calc_brace_level(node, tokens)
-        variants = get_variants(node, tokens, brace_level, line.indent_level)
-        #print(token[1])
+        variants = get_variants(node, tokens, brace_level, line.indent)
 
         # variant: (penalty, str)
         for variant in variants:
@@ -188,7 +188,7 @@ def format_line(line):
 
     nodes.reverse()
 
-    strs = ['    ' * line.indent_level]
+    strs = [line.indent]
 
     for _, token_idx, _, prev_space in nodes:
         strs.append(prev_space)
@@ -197,38 +197,36 @@ def format_line(line):
 
     return ''.join(strs)
 
+def python_format(line):
+    try:
+        toks = generate_tokens(line, 0)
+    except error.TokenError as err:
+        sys.stdout.write(''.join(line))
+        return 1
+
+    while len(toks) > 0 and toks[-1][0] in (tokens.ENDMARKER, tokens.NEWLINE):
+        toks = toks[:-1]
+
+    indent = ''
+    lines = []
+    current_line = None
+
+    if len(toks) > 0 and toks[0][0] == tokens.INDENT:
+        indent = toks[0][1]
+        toks = toks[1:]
+
+    print(format_line(Line(indent, toks)))
+    
 def main(argv):
     lines = sys.stdin.readlines()
 
-    try:
-        toks = generate_tokens(lines, 0)
-    except error.TokenError as err:
-        sys.stdout.write(''.join(lines))
-        return 1
-
-    indent_level = 0
-    lines = []
-    current_line = None
-    
-    for token in toks:
-        if token[0] == tokens.INDENT:
-            indent_level += int(len(token[1]) / 4)
-            continue
-        elif token[0] == tokens.DEDENT:
-            indent_level -= 1
-            continue
-
-        if current_line is None:
-            current_line = Line(indent_level, [])
-            lines.append(current_line)
-
-        if token[0] == tokens.NEWLINE:
-            current_line = None
-        else:
-            current_line.tokens.append(token)
-
+    current_line = []
     for line in lines:
-        sys.stdout.write(format_line(line))
+        current_line.append(line)
+
+        if not line.rstrip().endswith('\\'):
+            python_format(current_line)
+            current_line = []
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
