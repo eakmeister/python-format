@@ -133,7 +133,7 @@ def calc_line_length(node, tokens, indent_level):
 
         node = node[2]
 
-    length += indent_level * 4
+    length += indent_level
     return length
 
 def calc_brace_level(node, toks):
@@ -162,7 +162,6 @@ def format_line(line):
         return ''
 
     # (penalty, token_idx, prev, prev_space)
-    # newline: 0 - No newline, 1 - newline
     unvisited = [(0, 0, None, '')]
 
     while len(unvisited) > 0:
@@ -179,7 +178,7 @@ def format_line(line):
 
         # variant: (penalty, str)
         for variant in variants:
-            heappush(unvisited, (variant[0], token_idx + 1, node, variant[1]))
+            heappush(unvisited, (penalty + variant[0], token_idx + 1, node, variant[1]))
 
     nodes = []
     while not node is None:
