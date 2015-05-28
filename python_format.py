@@ -4,8 +4,9 @@ from collections import namedtuple
 from heapq import heappush, heappop
 from itertools import tee, izip
 
+import os
 import sys
-sys.path.append('pypy')
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pypy'))
 
 from pypy.interpreter.pyparser.pytokenizer import generate_tokens
 from pypy.interpreter.pyparser import pytoken, error
@@ -68,6 +69,9 @@ def needs_space_between(first, second, brace_level):
     if first[0] in OPERATORS or second[0] in OPERATORS:
         return True
 
+    if first[0] == tokens.NAME and first[1] in KEYWORDS:
+        return True
+
     if first[0] == tokens.NAME:
         return not second[0] in (tokens.LPAR, tokens.RPAR, tokens.LSQB, tokens.RSQB, tokens.DOT, tokens.COMMA)
 
@@ -75,9 +79,6 @@ def needs_space_between(first, second, brace_level):
         return not first[0] in (tokens.DOT, tokens.LPAR, tokens.LSQB)
 
     if first[0] == tokens.COMMA:
-        return True
-
-    if first[0] == tokens.NAME and first[1] in KEYWORDS:
         return True
     
     return False

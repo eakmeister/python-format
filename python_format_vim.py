@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import vim
 import subprocess
 
@@ -21,8 +22,10 @@ if __name__ == '__main__':
 
     stdout, stderr = p.communicate(input = text)
 
-    if not stdout:
+    if not stdout and not stderr:
         print('No output from python_format')
+    elif stderr:
+        print('Error from python_format:', stderr)
     elif stdout != text:
         lines = stdout.splitlines()
 
