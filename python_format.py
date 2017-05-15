@@ -195,36 +195,42 @@ def format_line(line):
     return ''.join(strs)
 
 def python_format(line):
+    """
+    Format the given text string as a Python line
+    
+    Args:
+        line - String
+    """
     try:
-        toks = generate_tokens(line, 0)
-    except error.TokenError as err:
-        sys.stdout.write(''.join(line))
+        toks = generate_tokens(line.split('\n'), 0)
+    except error.TokenError:
+        return line
         return 1
 
-    while len(toks) > 0 and toks[-1][0] in (tokens.ENDMARKER, tokens.NEWLINE):
+    while toks and toks[-1][0] in (tokens.ENDMARKER, tokens.NEWLINE):
         toks = toks[:-1]
 
     indent = ''
-    lines = []
-    current_line = None
 
-    if len(toks) > 0 and toks[0][0] == tokens.INDENT:
+    if toks and toks[0][0] == tokens.INDENT:
         indent = toks[0][1]
         toks = toks[1:]
 
-    print(format_line(Line(indent, toks)))
-    
-def main(argv):
+    return format_line(Line(indent, toks))
+
+def main():
+    """
+    Main function, reads from stdin and writes to stdout
+    """
     lines = sys.stdin.readlines()
 
-    current_line = []
+    current_line = ""
     for line in lines:
-        current_line.append(line)
+        current_line = current_line + line
 
         if not line.rstrip().endswith('\\'):
-            python_format(current_line)
+            print(python_format(current_line))
             current_line = []
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
-
+    main()
